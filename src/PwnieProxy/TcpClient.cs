@@ -31,12 +31,12 @@ namespace PwnieProxy
                 {
                     using (_remoteClient)
                     using (_client)
-                    await using (var serverLogStream = File.OpenWrite(@"server.dump"))
-                    await using(var remoteLogStream = File.OpenWrite(@"remote.dump"))
+                    //await using (var serverLogStream = File.OpenWrite(@"server.dump"))
+                    //await using(var remoteLogStream = File.OpenWrite(@"remote.dump"))
                     {
                         await _client.ConnectAsync(_remoteServer.Address, _remoteServer.Port);
-                        var serverStream = new InterceptionStream(_client.GetStream(), serverLogStream);
-                        var remoteStream = new InterceptionStream(_remoteClient.GetStream(), remoteLogStream);
+                        var serverStream = new InterceptionStream(_client.GetStream());
+                        var remoteStream = new InterceptionStream(_remoteClient.GetStream());
                         await Task.WhenAny(remoteStream.CopyToAsync(serverStream),
                             serverStream.CopyToAsync(remoteStream));
                     }
