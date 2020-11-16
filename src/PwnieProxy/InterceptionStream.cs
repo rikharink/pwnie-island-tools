@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO.Pipelines;
+using PwnieProxy.Handlers;
 
 namespace PwnieProxy
 {
@@ -10,8 +12,12 @@ namespace PwnieProxy
     {
         private Stream InnerStream { get; }
         private Stream? CopyStream { get; }
+        private Queue<byte[]> queue = new Queue<byte[]>();
+        private readonly List<IHandler> handlers = new List<IHandler>();
 
-        public InterceptionStream(Stream innerStream, Stream copyStream = null)
+        public void AddHandler(IHandler handler) => handlers.Add(handler);
+
+        public InterceptionStream(Stream innerStream, Stream? copyStream = null)
         {
             InnerStream = innerStream ?? throw new ArgumentNullException(nameof(innerStream));
             CopyStream = copyStream;
@@ -44,10 +50,24 @@ namespace PwnieProxy
             return bytesRead;
         }
 
+        public void QueueMessage(byte[] message)
+        {
+            queue.Enqueue(message);
+        }
+
         public override void Write(byte[] buffer, int offset, int count)
         {
-            InnerStream.Write(buffer, offset, count);
-            CopyStream?.Write(buffer, offset, count);
+            byte[] packet = buffer[offset..count];
+            foreach (var handler in handlers)
+            {
+                packet = handler.Handle(packet);
+            }
+            if (queue.TryDequeue(out byte[]? result) && result != null)
+            {
+                packet = packet.Concat(result).ToArray();
+            }
+            InnerStream.Write(packet, 0, packet.Length);
+            CopyStream?.Write(packet, 0, packet.Length);
         }
 
         public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)

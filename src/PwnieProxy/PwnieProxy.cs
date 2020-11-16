@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace PwnieProxy
 {
-    public class TcpProxy
+    public class PwnieProxy
     {
         public async Task Start(string remoteServerIp, ushort remoteServerPort, ushort localPort, string? localIp = null)
         {
             var localIpAddress = string.IsNullOrEmpty(localIp) ? IPAddress.Loopback : IPAddress.Parse(localIp);
             var server = new TcpListener(new IPEndPoint(localIpAddress, localPort));
             server.Start();
-            Console.WriteLine($"TCP proxy started {localPort} -> {remoteServerIp}|{remoteServerPort}");
+            Console.WriteLine($"Pwnie Proxy started {localPort} -> {remoteServerIp}|{remoteServerPort}");
             while (true)
             {
                 try
@@ -21,7 +21,7 @@ namespace PwnieProxy
                     var remoteClient = await server.AcceptTcpClientAsync();
                     remoteClient.NoDelay = true;
                     var ips = await Dns.GetHostAddressesAsync(remoteServerIp);
-                    var client = new TcpClient(remoteClient, new IPEndPoint(ips.First(), remoteServerPort));
+                    var client = new PwnieClient(remoteClient, new IPEndPoint(ips.First(), remoteServerPort));
                 }
                 catch (Exception ex) {
                     Console.ForegroundColor = ConsoleColor.Red;

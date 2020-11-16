@@ -8,7 +8,7 @@ namespace PwnieProxy
     {
         static async Task Main(string[] args)
         {
-            var proxy = new TcpProxy();
+            var proxy = new PwnieProxy();
             var proxyTasks = new List<Task>();
             for (ushort i = 3000; i < 3006; i++)
             {
