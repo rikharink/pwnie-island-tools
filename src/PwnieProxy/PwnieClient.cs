@@ -33,9 +33,12 @@ namespace PwnieProxy
                     using (_client)
                     {
                         await _client.ConnectAsync(_remoteServer.Address, _remoteServer.Port);
-                        var toServer = new InterceptionStream(_client.GetStream());
-                        var toClient = new InterceptionStream(_remoteClient.GetStream());
-                        toServer.AddHandler(new ChatHandler() { Other = toClient });
+                        (var toServer, var toClient) =
+                            InterceptionBuilder
+                                .AddStreams(_client.GetStream(), _remoteClient.GetStream())
+                                .AddToServerHandler(new ChatHandler())
+                                .Build();
+
                         await Task.WhenAny(toClient.CopyToAsync(toServer),
                             toServer.CopyToAsync(toClient));
                     }

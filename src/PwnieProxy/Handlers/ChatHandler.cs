@@ -63,13 +63,15 @@ namespace PwnieProxy.Handlers
         public byte[] ParseCommand(string commandString, byte[] data, int offset)
         {
             Console.WriteLine("COMMAND: " + commandString);
-            var parts = commandString.Split(" ");
+            var parts = commandString.Split(" ", 2);
             var command = parts[0];
+            var args = parts[1];
             List<byte> packet = (data[offset..] ?? new byte[] { }).ToList();
             switch (command)
             {
                 case "event":
-                    QueueForOther(GetEventPackage(parts[1], parts[2]));
+                    var eventArgs = args.Split(";");
+                    QueueForOther(GetEventPackage(eventArgs[0], eventArgs[1]));
                     break;
                 case "gbof":
                     packet.AddRange(GetLocationPacket(-43655, -55820, 322));
