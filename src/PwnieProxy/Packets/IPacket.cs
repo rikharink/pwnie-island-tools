@@ -30,6 +30,11 @@ namespace PwnieProxy.Packets
             return arr!;
         }
 
+        public static string GetOpcode(byte[] data)
+        {
+            return BitConverter.ToString(new[] { data[1], data[0] });
+        }
+
         public static T FromByteArray<T>(byte[] bytes)
         {
             T position;

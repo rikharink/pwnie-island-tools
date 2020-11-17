@@ -18,7 +18,7 @@ namespace PwnieProxy.Handlers
 
         public byte[] Handle(byte[] data)
         {
-            var opcode = IHandler.GetOpcode(data);
+            var opcode = IPacket.GetOpcode(data);
             switch (opcode)
             {
                 case Opcodes.Chat:
