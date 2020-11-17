@@ -1,13 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30711.63
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F013F0AD-5638-4FB1-8998-59E81A062133}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PwnieProxy", "src\PwnieProxy\PwnieProxy.csproj", "{C88AB54D-9A86-4B45-BC69-C36AE94EB49D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PwnieProxy", "src\PwnieProxy\PwnieProxy.csproj", "{C88AB54D-9A86-4B45-BC69-C36AE94EB49D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PwnieProxy.Test", "test\PwnieProxy.Test\PwnieProxy.Test.csproj", "{56FFE58E-6E95-4119-824F-86DC80A0E7B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PwnieProxy.Test", "test\PwnieProxy.Test\PwnieProxy.Test.csproj", "{56FFE58E-6E95-4119-824F-86DC80A0E7B4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PwnieIsland.Injector", "src\PwnieIsland.Injector\PwnieIsland.Injector.vcxproj", "{C9775CA8-F2EC-4911-98A1-3344F558445A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PwnieIsland.Trainer", "src\PwnieIsland.Trainer\PwnieIsland.Trainer.vcxproj", "{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,9 +21,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{C88AB54D-9A86-4B45-BC69-C36AE94EB49D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -46,8 +47,36 @@ Global
 		{56FFE58E-6E95-4119-824F-86DC80A0E7B4}.Release|x64.Build.0 = Release|Any CPU
 		{56FFE58E-6E95-4119-824F-86DC80A0E7B4}.Release|x86.ActiveCfg = Release|Any CPU
 		{56FFE58E-6E95-4119-824F-86DC80A0E7B4}.Release|x86.Build.0 = Release|Any CPU
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Debug|x64.ActiveCfg = Debug|x64
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Debug|x64.Build.0 = Debug|x64
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Debug|x86.ActiveCfg = Debug|Win32
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Debug|x86.Build.0 = Debug|Win32
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Release|Any CPU.ActiveCfg = Release|Win32
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Release|x64.ActiveCfg = Release|x64
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Release|x64.Build.0 = Release|x64
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Release|x86.ActiveCfg = Release|Win32
+		{C9775CA8-F2EC-4911-98A1-3344F558445A}.Release|x86.Build.0 = Release|Win32
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Debug|x64.ActiveCfg = Debug|x64
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Debug|x64.Build.0 = Debug|x64
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Debug|x86.ActiveCfg = Debug|Win32
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Debug|x86.Build.0 = Debug|Win32
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Release|Any CPU.ActiveCfg = Release|Win32
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Release|x64.ActiveCfg = Release|x64
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Release|x64.Build.0 = Release|x64
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Release|x86.ActiveCfg = Release|Win32
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C88AB54D-9A86-4B45-BC69-C36AE94EB49D} = {F013F0AD-5638-4FB1-8998-59E81A062133}
+		{C9775CA8-F2EC-4911-98A1-3344F558445A} = {F013F0AD-5638-4FB1-8998-59E81A062133}
+		{0F3EE829-5D7D-44F4-A5FA-36ECC6A051E0} = {F013F0AD-5638-4FB1-8998-59E81A062133}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C2B1B45D-899C-4FAC-B439-FF58C379BC86}
 	EndGlobalSection
 EndGlobal

@@ -3,22 +3,22 @@ using PwnieProxy.Handlers;
 
 namespace PwnieProxy
 {
-    public class InterceptionBuilder
+    public static class InterceptionBuilder
     {
-        public static HandlerBuilder AddStream(Stream toServer, Stream toClient)
+        public static HandlerBuilder AddStreams(Stream toServer, Stream toClient, Stream? copyToServer = null, Stream? copyToClient = null)
         {
-            return new HandlerBuilder(toServer, toClient);
+            return new HandlerBuilder(toServer, toClient, copyToServer, copyToClient);
         }
 
         public class HandlerBuilder
         {
-            private InterceptionStream toServer;
-            private InterceptionStream toClient;
-            
-            internal HandlerBuilder(Stream toServer, Stream toClient)
+            private readonly InterceptionStream toServer;
+            private readonly InterceptionStream toClient;
+
+            internal HandlerBuilder(Stream toServer, Stream toClient, Stream? copyToServer = null, Stream? copyToClient = null)
             {
-                this.toServer = new InterceptionStream(toServer);
-                this.toClient = new InterceptionStream(toClient);
+                this.toServer = new InterceptionStream(toServer, copyToServer);
+                this.toClient = new InterceptionStream(toClient, copyToClient);
             }
 
             public HandlerBuilder AddToServerHandler(IHandler handler)
