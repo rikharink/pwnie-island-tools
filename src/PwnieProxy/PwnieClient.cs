@@ -36,6 +36,8 @@ namespace PwnieProxy
                         (var toServer, var toClient) =
                             InterceptionBuilder
                                 .AddStreams(_client.GetStream(), _remoteClient.GetStream())
+                                .AddToServerHandler(new PacketLogger("[Client -> Server]"))
+                                .AddToClientHandler(new PacketLogger("[Server -> Client]"))
                                 .AddToServerHandler(new ChatHandler())
                                 .Build();
 

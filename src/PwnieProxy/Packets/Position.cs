@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 namespace PwnieProxy.Packets
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct Position : IPacket
+    public struct PositionUpdate : IPacket
     {
-        public Position(float x, float y, float z)
+        public PositionUpdate(float x, float y, float z)
         {
             Opcode = 0x766d;
             X = x;
