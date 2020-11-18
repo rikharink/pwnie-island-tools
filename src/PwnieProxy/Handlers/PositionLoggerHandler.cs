@@ -1,9 +1,5 @@
 ﻿using PwnieProxy.Packets;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PwnieProxy.Handlers
 {
@@ -16,7 +12,7 @@ namespace PwnieProxy.Handlers
             var opcode = BitConverter.ToString(data[0..2]);
             if(opcode == Opcodes.Movement)
             {
-                var position = IPacket.FromByteArray<Position>(data);
+                var position = IPacket.FromByteArray<PositionUpdate>(data);
                 Console.WriteLine("Position: " + position);
             }
             return data;

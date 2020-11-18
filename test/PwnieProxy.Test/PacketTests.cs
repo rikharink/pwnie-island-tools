@@ -13,7 +13,7 @@ namespace PwnieProxy.Test
         [Test]
         public void PositionTest()
         {
-            var position = new Position
+            var position = new PositionUpdate
             {
                 Opcode = 0x6d76,
                 X = 20,
@@ -29,7 +29,7 @@ namespace PwnieProxy.Test
             var bytes = ((IPacket)position).ToByteArray();
             Assert.NotNull(bytes);
             Assert.AreEqual(22, bytes!.Length);
-            var unpackedPosition = IPacket.FromByteArray<Position>(bytes);
+            var unpackedPosition = IPacket.FromByteArray<PositionUpdate>(bytes);
             Assert.AreEqual(position, unpackedPosition);
         }
     }

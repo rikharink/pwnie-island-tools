@@ -9,11 +9,10 @@ namespace PwnieProxy.Handlers
     public class ChatHandler : IHandler
     {
         public InterceptionStream? Other { get; set; }
-
         public byte[] Handle(byte[] data)
         {
             List<byte> packet = new List<byte>();
-            var opcode = BitConverter.ToString(data[0..2]);
+            var opcode = IHandler.GetOpcode(data);
             if (opcode == Opcodes.Chat)
             {
                 var start = 4;
@@ -31,32 +30,10 @@ namespace PwnieProxy.Handlers
             return packet.ToArray();
         }
 
-        public byte[] GetLocationPacket(float x, float y, float z) => ((IPacket)new Position(x, y, z)).ToByteArray();
+        public byte[] GetLocationPacket(float x, float y, float z) => ((IPacket)new PositionUpdate(x, y, z)).ToByteArray();
         public byte[] GetPickupPacket(int id) => ((IPacket)new Pickup(id)).ToByteArray();
         public byte[] GetDialogPacket(string dialog) => ((IPacket)new Dialog(dialog)).ToByteArray();
-        public byte[] GetNewSpawnPacket(byte[] opcode, (float x, float y, float z) pos)
-        {
-            var packet = new List<byte>(22);
-            packet.AddRange(opcode);
-            packet.AddRange(new byte[] { 0, 0 });
-            packet.AddRange(BitConverter.GetBytes(pos.x));
-            packet.AddRange(BitConverter.GetBytes(pos.y));
-            packet.AddRange(BitConverter.GetBytes(pos.z));
-            packet.AddRange(new byte[] { 0, 0, 0, 0, 0, 0 });
-            return packet.ToArray();
-        }
-
-        public byte[] GetEventPackage(string messageTop, string messageBottom)
-        {
-            var bytes = new List<byte>(2 + messageTop.Length + 2 + messageBottom.Length);
-            bytes.AddRange(new byte[] { 0x65, 0x76 });
-            bytes.AddRange(BitConverter.GetBytes((ushort)messageTop.Length));
-            bytes.AddRange(Encoding.ASCII.GetBytes(messageTop));
-            bytes.AddRange(BitConverter.GetBytes((ushort)messageBottom.Length));
-            bytes.AddRange(Encoding.ASCII.GetBytes(messageBottom));
-            return bytes.ToArray();
-        }
-
+        public byte[] GetEventPackage(string messageTop, string messageBottom) => new Event(messageTop, messageBottom).ToByteArray();
         public (float x, float y, float z) GetCoordinates(string x, string y, string z) => (float.Parse(x), float.Parse(y), float.Parse(z));
 
         public byte[] ParseCommand(string commandString, byte[] data, int offset)
