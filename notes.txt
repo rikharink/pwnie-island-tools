@@ -1,2 +1,0 @@
-* exe + 8DB2D8 < Movement Code
-* GameLogic.Actor::SetPosition(Vector3 pos)

@@ -45,10 +45,34 @@ namespace PwnieProxy.Handlers
             List<byte> packet = (data[offset..] ?? Array.Empty<byte>()).ToList();
             switch (command)
             {
+                case "packet":
+                    var packetArgs = args.Split(";");
+                    var payload = StringToByteArray(packetArgs[1]);
+                    if (packetArgs[0] == "client" || packetArgs[0] == "c")
+                    {
+                        packet.AddRange(payload);
+                    }
+                    else if (packetArgs[0] == "server" || packetArgs[0] == "s")
+                    {
+                        ((IHandler)this).QueueForOther(payload);
+                    }
+                    break;
                 case "event":
                     var eventArgs = args.Split(";");
                     ((IHandler)this).QueueForOther(GetEventPackage(eventArgs[0], eventArgs[1]));
                     break;
+                case "pickup":
+                    packet.AddRange(GetPickupPackets(args));
+                    break;
+            }
+            return packet.ToArray();
+        }
+
+        private byte[] GetPickupPackets(string location)
+        {
+            var packet = new List<byte>();
+            switch (location)
+            {
                 case "gbof":
                     packet.AddRange(GetLocationPacket(-43655, -55820, 322));
                     packet.AddRange(GetPickupPacket(1));
@@ -107,5 +131,30 @@ namespace PwnieProxy.Handlers
             return packet.ToArray();
         }
 
+        public static byte[] StringToByteArray(string hex)
+        {
+            if (hex.Length % 2 == 1)
+                throw new Exception("The binary key cannot have an odd number of digits");
+
+            byte[] arr = new byte[hex.Length >> 1];
+
+            for (int i = 0; i < hex.Length >> 1; ++i)
+            {
+                arr[i] = (byte)((GetHexVal(hex[i << 1]) << 4) + (GetHexVal(hex[(i << 1) + 1])));
+            }
+
+            return arr;
+        }
+
+        public static int GetHexVal(char hex)
+        {
+            int val = (int)hex;
+            //For uppercase A-F letters:
+            //return val - (val < 58 ? 48 : 55);
+            //For lowercase a-f letters:
+            //return val - (val < 58 ? 48 : 87);
+            //Or the two combined, but a bit slower:
+            return val - (val < 58 ? 48 : (val < 97 ? 55 : 87));
+        }
     }
 }

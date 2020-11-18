@@ -24,10 +24,13 @@
 #include "imgui_impl_dx11.h"
 #include "dllmain.h"
 #include <vector>
+#include <string>
 
 
 // D3X HOOK DEFINITIONS
 typedef HRESULT(__stdcall* IDXGISwapChainPresent)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
+IDXGISwapChainPresent fnIDXGISwapChainPresent;
+
 // Definition of WndProc Hook. Its here to avoid dragging dependencies on <windows.h> types.
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 BOOL g_bInitialised = false;
@@ -39,14 +42,35 @@ ID3D11RenderTargetView* mainRenderTargetView;
 static IDXGISwapChain* pSwapChain = NULL;
 static WNDPROC OriginalWndProcHandler = nullptr;
 HWND window = nullptr;
-IDXGISwapChainPresent fnIDXGISwapChainPresent;
 
 
 // TRAINER DEFINITIONS
+uintptr_t moduleBase;
+uintptr_t dllBase;
+
 struct vec3 { float x, y, z; };
 vec3* position = new vec3{ 0.0, 0.0, 0.0 };
-typedef HRESULT(__stdcall* PwnUpdateCamera)();
-PwnUpdateCamera fnUpdateCamera;
+
+typedef void(__fastcall* Chat)(void* pThis, void*, char* msg);
+Chat fnChat;
+
+typedef bool(__fastcall* FastTravelAvailable)(void* pThis, void*, void* player);
+FastTravelAvailable fnFastTravelAvailable;
+
+// HACK TOGGLES
+bool g_flyHackEnabled = false;
+bool g_UnlockAllFastTravel = false;
+
+uintptr_t FindDMAAddy(uintptr_t ptr, std::vector<unsigned int> offsets)
+{
+	uintptr_t addr = ptr;
+	for (unsigned int i = 0; i < offsets.size(); i++)
+	{
+		addr = *(uintptr_t*)addr;
+		addr += offsets[i];
+	}
+	return addr;
+}
 
 LRESULT CALLBACK hWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -87,10 +111,12 @@ HRESULT GetDeviceAndCtxFromSwapchain(IDXGISwapChain* pSwapChain, ID3D11Device** 
 	return ret;
 }
 
-bool g_flyHackEnabled = false;
 
 void ShowTrainer(bool* p_open)
 {
+	if (ImGuiCond_FirstUseEver) {
+		position = (vec3*)FindDMAAddy(moduleBase + 0x01900600, { 0xac, 0x38, 0x418, 0xd4, 0xd4, 0x90 });
+	}
 	// We specify a default position/size in case there's no data in the .ini file. Typically this isn't required! We only do it to make the Demo applications a little more welcoming.
 	ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
@@ -102,8 +128,10 @@ void ShowTrainer(bool* p_open)
 		ImGui::End();
 		return;
 	}
-	ImGui::Text("x: %f y: %f z: %f", position->x, position->y, position->z);
+
+	ImGui::InputFloat3("Position", (float*)position);
 	ImGui::Checkbox("Noclip", &g_flyHackEnabled);
+	ImGui::Checkbox("Unlock All FastTravel", &g_UnlockAllFastTravel);
 
 	ImGui::PushItemWidth(ImGui::GetFontSize() * -12);           // Use fixed width for labels (by passing a negative value), the rest goes to widgets. We choose a width proportional to our font size.
 	ImGui::Spacing();
@@ -284,17 +312,6 @@ void SetupConsole()
 	std::cout << ("[+] Running under PwnAdventure3!") << std::endl;   // Console works!
 }
 
-uintptr_t FindDMAAddy(uintptr_t ptr, std::vector<unsigned int> offsets) 
-{
-	uintptr_t addr = ptr;
-	for (unsigned int i = 0; i < offsets.size(); i++) 
-	{
-		addr = *(uintptr_t*)addr;
-		addr += offsets[i];
-	}
-	return addr;
-}
-
 void DestroyConsole()
 {
 	fclose(out);
@@ -303,39 +320,78 @@ void DestroyConsole()
 	FreeConsole();
 }
 
-HRESULT __stdcall UpdateCamera()
+std::vector<std::string> split(const std::string& str, const std::string& delim)
 {
-	return fnUpdateCamera();
+	std::vector<std::string> tokens;
+	size_t prev = 0, pos = 0;
+	do
+	{
+		pos = str.find(delim, prev);
+		if (pos == std::string::npos) pos = str.length();
+		std::string token = str.substr(prev, pos - prev);
+		if (!token.empty()) tokens.push_back(token);
+		prev = pos + delim.length();
+	} while (pos < str.length() && prev < str.length());
+	return tokens;
 }
 
-void enableCameraUpdateDetour() 
+void __fastcall SendChat(void* pThis, void* d, char* msg)
 {
-	std::cout << "\t[-] Enabling Camera Update Detour" << std::endl;
+	if (strncmp(msg, "#", 1) == 0)
+	{
+		std::string chatMessage = msg;
+		chatMessage.erase(0, 1);
+		int commandArgsSplit = chatMessage.find(" ");
+		std::string command = chatMessage.substr(0, commandArgsSplit);
+		std::string args = chatMessage.substr(commandArgsSplit, chatMessage.length());
+		std::cout << "CMD: " << command << " ARG: " << args << std::endl;
+		if (command == "tp")
+		{
+			std::vector<std::string> coords = split(args, ";");
+			if (coords.size() >= 3) {
+				position->x = std::stof(coords[0]);
+				position->y = std::stof(coords[1]);
+				position->z = std::stof(coords[2]);
+			}
+		}
+		return;
+	}
+	return fnChat(pThis, d, msg);
+}
+
+bool __fastcall FastTravelAvailableDetour(void* pThis, void* d, void* player) {
+	if (g_UnlockAllFastTravel) {
+		return true;
+	}
+	return fnFastTravelAvailable(pThis, d, player);
+}
+
+void enableFastTravelDetour()
+{
+	std::cout << "\t[-] Enabling FastTravel Detour" << std::endl;
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	DetourAttach(&(LPVOID&)fnUpdateCamera, (PBYTE)UpdateCamera);
+	DetourAttach(&(LPVOID&)fnFastTravelAvailable, (PBYTE)FastTravelAvailableDetour);
 	DetourTransactionCommit();
 }
 
-void enableTrainerDetours(uintptr_t moduleBase, uintptr_t dllBase) 
+void enableChatDetour()
 {
-	std::cout << "[+] Enabling Trainer Detours:" << std::endl;	
-	//fnUpdateCamera = (PwnUpdateCamera)(moduleBase + 0x8DB2D8);
-	//enableCameraUpdateDetour();
+	std::cout << "\t[-] Enabling Chat Detour" << std::endl;
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourAttach(&(LPVOID&)fnChat, (PBYTE)SendChat);
+	DetourTransactionCommit();
 }
 
-void trainerLoop(uintptr_t moduleBase, uintptr_t dllBase) 
+void enableTrainerDetours()
 {
-	while (true) 
-	{
-		if (g_flyHackEnabled) 
-		{
-			//TODO: FIX
-			position = (vec3*)FindDMAAddy(dllBase + 0x97D74, { 0x1c, 0x4, 0x114, 0x98 });
-			std::cout << "Position (x, y, z): (" << position->x << ", " << position->y << ", " << position->z << ")" << std::endl;
-		}
-		Sleep(5);
-	}
+	std::cout << "[+] Enabling Trainer Detours:" << std::endl;
+	fnChat = (Chat)(dllBase + 0x551A0);
+	enableChatDetour();
+
+	fnFastTravelAvailable = (FastTravelAvailable)(dllBase + 0x11e90);
+	enableFastTravelDetour();
 }
 
 DWORD WINAPI TrainerThread(HMODULE hModule)
@@ -344,16 +400,15 @@ DWORD WINAPI TrainerThread(HMODULE hModule)
 	void* Device[40];
 	void* Context[108];
 
+	moduleBase = (uintptr_t)GetModuleHandle(L"PwnAdventure3-Win32-Shipping.exe");
+	dllBase = (uintptr_t)GetModuleHandle(L"GameLogic.dll");
 
 	if (GetD3D11SwapchainDeviceContext(SwapChain, sizeof(SwapChain), Device, sizeof(Device), Context, sizeof(Context)))
 	{
 		SetupConsole();
 		retrieveValues((DWORD_PTR)SwapChain[8]);
 		detourDirectX();
-		uintptr_t moduleBase = (uintptr_t)GetModuleHandle(L"PwnAdventure3-Win32-SHipping.exe");
-		uintptr_t dllBase = (uintptr_t)GetModuleHandle(L"GameLogic.dll");
-		enableTrainerDetours(moduleBase, dllBase);
-		trainerLoop(moduleBase, dllBase);
+		enableTrainerDetours();
 	}
 	else
 	{
