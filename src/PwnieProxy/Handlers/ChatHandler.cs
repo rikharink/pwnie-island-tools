@@ -9,7 +9,6 @@ namespace PwnieProxy.Handlers
     public class ChatHandler : IHandler
     {
         public InterceptionStream? Other { get; set; }
-        public void QueueForOther(byte[] data) => Other?.QueueMessage(data);
 
         public byte[] Handle(byte[] data)
         {
@@ -52,9 +51,9 @@ namespace PwnieProxy.Handlers
             var bytes = new List<byte>(2 + messageTop.Length + 2 + messageBottom.Length);
             bytes.AddRange(new byte[] { 0x65, 0x76 });
             bytes.AddRange(BitConverter.GetBytes((ushort)messageTop.Length));
-            bytes.AddRange(ASCIIEncoding.ASCII.GetBytes(messageTop));
+            bytes.AddRange(Encoding.ASCII.GetBytes(messageTop));
             bytes.AddRange(BitConverter.GetBytes((ushort)messageBottom.Length));
-            bytes.AddRange(ASCIIEncoding.ASCII.GetBytes(messageBottom));
+            bytes.AddRange(Encoding.ASCII.GetBytes(messageBottom));
             return bytes.ToArray();
         }
 
@@ -66,12 +65,12 @@ namespace PwnieProxy.Handlers
             var parts = commandString.Split(" ", 2);
             var command = parts[0];
             var args = parts[1];
-            List<byte> packet = (data[offset..] ?? new byte[] { }).ToList();
+            List<byte> packet = (data[offset..] ?? Array.Empty<byte>()).ToList();
             switch (command)
             {
                 case "event":
                     var eventArgs = args.Split(";");
-                    QueueForOther(GetEventPackage(eventArgs[0], eventArgs[1]));
+                    ((IHandler)this).QueueForOther(GetEventPackage(eventArgs[0], eventArgs[1]));
                     break;
                 case "gbof":
                     packet.AddRange(GetLocationPacket(-43655, -55820, 322));
