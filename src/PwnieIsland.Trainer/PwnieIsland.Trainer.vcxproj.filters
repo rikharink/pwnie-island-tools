@@ -16,6 +16,12 @@
     <Filter Include="Source Files\ImGui">
       <UniqueIdentifier>{e72cb045-a033-4148-b28e-55309b3f9b1b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\geom">
+      <UniqueIdentifier>{1bbab02f-4a5e-4dbb-ad47-8ff1aeb86aca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mem">
+      <UniqueIdentifier>{9a6b8b6e-2c9c-4639-92b9-610cf40ef57f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -51,6 +57,12 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="geom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -76,6 +88,12 @@
     </ClCompile>
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>Source Files\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="geom.cpp">
+      <Filter>Source Files\geom</Filter>
+    </ClCompile>
+    <ClCompile Include="mem.cpp">
+      <Filter>Source Files\mem</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

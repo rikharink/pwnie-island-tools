@@ -26,6 +26,8 @@
 #include <vector>
 #include <string>
 
+#include "geom.h"
+#include "mem.h"
 
 // D3X HOOK DEFINITIONS
 typedef HRESULT(__stdcall* IDXGISwapChainPresent)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
@@ -48,8 +50,11 @@ HWND window = nullptr;
 uintptr_t moduleBase;
 uintptr_t dllBase;
 
-struct vec3 { float x, y, z; };
 vec3* position = new vec3{ 0.0, 0.0, 0.0 };
+
+vec3* cameraPosition = new vec3{ 0.0, 0.0, 0.0 };
+vec4* cameraOrientation = new vec4{ 0.0, 0.0, 0.0, 0.0 };
+vec3 cameraRotation;
 
 typedef void(__fastcall* Chat)(void* pThis, void*, char* msg);
 Chat fnChat;
@@ -59,18 +64,8 @@ FastTravelAvailable fnFastTravelAvailable;
 
 // HACK TOGGLES
 bool g_flyHackEnabled = false;
-bool g_UnlockAllFastTravel = false;
-
-uintptr_t FindDMAAddy(uintptr_t ptr, std::vector<unsigned int> offsets)
-{
-	uintptr_t addr = ptr;
-	for (unsigned int i = 0; i < offsets.size(); i++)
-	{
-		addr = *(uintptr_t*)addr;
-		addr += offsets[i];
-	}
-	return addr;
-}
+bool g_unlockAllFastTravel = false;
+float speed = 1.0;
 
 LRESULT CALLBACK hWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -111,12 +106,14 @@ HRESULT GetDeviceAndCtxFromSwapchain(IDXGISwapChain* pSwapChain, ID3D11Device** 
 	return ret;
 }
 
-
 void ShowTrainer(bool* p_open)
 {
 	if (ImGuiCond_FirstUseEver) {
-		position = (vec3*)FindDMAAddy(moduleBase + 0x01900600, { 0xac, 0x38, 0x418, 0xd4, 0xd4, 0x90 });
+		position = (vec3*)mem::FindAddress(moduleBase + 0x018FCD60, { 0x20, 0x244, 0x20C, 0xC, 0xD4, 0x90 });
+		cameraPosition = (vec3*)mem::FindAddress(moduleBase + 0x01684648, { 0x0, 0xAC, 0x88, 0x2E8, 0x4A4, 0xD4, 0x90 });
+		cameraOrientation = (vec4*)mem::FindAddress(moduleBase + 0x01684648, { 0x0, 0xAC, 0x88, 0x2E8, 0x4A4, 0xD4, 0x80 });
 	}
+
 	// We specify a default position/size in case there's no data in the .ini file. Typically this isn't required! We only do it to make the Demo applications a little more welcoming.
 	ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
@@ -130,8 +127,12 @@ void ShowTrainer(bool* p_open)
 	}
 
 	ImGui::InputFloat3("Position", (float*)position);
+	ImGui::InputFloat3("Camera Position", (float*)cameraPosition);
+	ImGui::InputFloat4("Camera Orientation", (float*)cameraOrientation);
 	ImGui::Checkbox("Noclip", &g_flyHackEnabled);
-	ImGui::Checkbox("Unlock All FastTravel", &g_UnlockAllFastTravel);
+	ImGui::InputFloat("Noclip speed", &speed);
+	ImGui::Checkbox("Unlock all FastTravel", &g_unlockAllFastTravel);
+
 
 	ImGui::PushItemWidth(ImGui::GetFontSize() * -12);           // Use fixed width for labels (by passing a negative value), the rest goes to widgets. We choose a width proportional to our font size.
 	ImGui::Spacing();
@@ -141,7 +142,7 @@ void ShowTrainer(bool* p_open)
 HRESULT __stdcall Present(IDXGISwapChain* pChain, UINT SyncInterval, UINT Flags)
 {
 	if (!g_bInitialised) {
-		std::cout << "[+] Present Hook called by first time" << std::endl;
+		std::cout << "[+] Present Hook called for the first time" << std::endl;
 		if (FAILED(GetDeviceAndCtxFromSwapchain(pChain, &pDevice, &pContext)))
 		{
 			std::cout << "[+] Failed to get device and context from swapchain" << std::endl;
@@ -180,10 +181,9 @@ HRESULT __stdcall Present(IDXGISwapChain* pChain, UINT SyncInterval, UINT Flags)
 		bool bShow = true;
 		ShowTrainer(&bShow);
 	}
+
 	ImGui::EndFrame();
-
 	ImGui::Render();
-
 	pContext->OMSetRenderTargets(1, &mainRenderTargetView, NULL);
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -195,7 +195,6 @@ void detourDirectX()
 	std::cout << "[+] Calling DirectX Detour" << std::endl;
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	// Detours the original fnIDXGISwapChainPresent with our Present
 	DetourAttach(&(LPVOID&)fnIDXGISwapChainPresent, (PBYTE)Present);
 	DetourTransactionCommit();
 }
@@ -312,7 +311,7 @@ void SetupConsole()
 	std::cout << ("[+] Running under PwnAdventure3!") << std::endl;   // Console works!
 }
 
-void DestroyConsole()
+void destroyConsole()
 {
 	fclose(out);
 	fclose(err);
@@ -360,7 +359,7 @@ void __fastcall SendChat(void* pThis, void* d, char* msg)
 }
 
 bool __fastcall FastTravelAvailableDetour(void* pThis, void* d, void* player) {
-	if (g_UnlockAllFastTravel) {
+	if (g_unlockAllFastTravel) {
 		return true;
 	}
 	return fnFastTravelAvailable(pThis, d, player);
@@ -394,6 +393,16 @@ void enableTrainerDetours()
 	enableFastTravelDetour();
 }
 
+void removeDetours()
+{
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourDetach(&(LPVOID&)fnIDXGISwapChainPresent, (PBYTE)Present);
+	DetourDetach(&(LPVOID&)fnChat, (PBYTE)SendChat);
+	DetourDetach(&(LPVOID&)fnFastTravelAvailable, (PBYTE)FastTravelAvailableDetour);
+	DetourTransactionCommit();
+}
+
 DWORD WINAPI TrainerThread(HMODULE hModule)
 {
 	void* SwapChain[18];
@@ -413,8 +422,93 @@ DWORD WINAPI TrainerThread(HMODULE hModule)
 	else
 	{
 		std::cout << "[+] Couldn't dump IDXGISwapChainPresent address" << std::endl;
-		DestroyConsole();
+		destroyConsole();
 	}
+
+	char* nopCamera = _strdup("\x90\x90\x90\x90\x90\x90\x90");
+	Hack cameraHack = Hack::Hack(moduleBase + 0x8DB2D8, nopCamera);
+
+	const int VK_W = 87;
+	const int VK_S = 83;
+	const int VK_A = 65;
+	const int VK_D = 68;
+
+	int c = 0;
+	vec3 dir = vec3{ 0,0,0 };
+	vec3 e = vec3{ 0, 0, 0 };
+
+	while (true)
+	{
+		if (GetAsyncKeyState(VK_END) & 1)
+		{
+			break;
+		}
+
+		if (g_flyHackEnabled)
+		{
+			if (!cameraHack.bStatus) {
+				cameraHack.Enable();
+			}
+
+			dir.x = 1 - 2 * (cameraOrientation->y * cameraOrientation->y + cameraOrientation->z * cameraOrientation->z);
+			dir.y = 2 * (cameraOrientation->x * cameraOrientation->y + cameraOrientation->w * cameraOrientation->z);
+			dir.z = 2 * (cameraOrientation->x * cameraOrientation->z - cameraOrientation->w * cameraOrientation->y);
+
+			float mul = (0.8 / sqrt(dir.x * dir.x + dir.y * dir.y)) * 0.05;
+
+			e.x = dir.x * speed * mul;
+			e.y = dir.y * speed * mul;
+			e.z = dir.z * speed * mul;
+			
+
+			if (GetAsyncKeyState(VK_RBUTTON)) {
+				cameraPosition->x += e.x;
+				cameraPosition->y += e.y;
+				cameraPosition->z += e.z;
+			}
+
+			if (GetAsyncKeyState(VK_W))
+			{
+				cameraPosition->x += e.x;
+				cameraPosition->y += e.y;
+			}
+			if (GetAsyncKeyState(VK_S)) {
+				cameraPosition->x -= e.x;
+				cameraPosition->y -= e.y;
+			}
+			if (GetAsyncKeyState(VK_A)) {
+				cameraPosition->x += e.y;
+				cameraPosition->y += -e.x;
+			}
+			if (GetAsyncKeyState(VK_D)) {
+				cameraPosition->x += -e.y;
+				cameraPosition->y += e.x;
+			}
+			if (GetAsyncKeyState(VK_SPACE)) {
+				cameraPosition->z += speed * mul;
+			}
+			if (GetAsyncKeyState(VK_SHIFT)) {
+				cameraPosition->z -= speed * mul;
+			}
+
+			position->x = cameraPosition->x;
+			position->y = cameraPosition->y;
+			position->z = cameraPosition->z - 64.0024f;
+		}
+		else
+		{
+			if (cameraHack.bStatus) {
+				cameraHack.Disable();
+			}
+		}
+
+		Sleep(5);
+	}
+
+	removeDetours();
+	Sleep(100);
+	destroyConsole();
+	FreeLibraryAndExitThread(hModule, 0);
 	return 0;
 }
 
